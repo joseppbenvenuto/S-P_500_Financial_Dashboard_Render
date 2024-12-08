@@ -463,7 +463,7 @@ def stock_data(jsonified_cleaned_data, ticker_value):
         # pe = [x.get_text().strip() for x in pe]
         # pe = pe[12]
 
-        ttm_pe = ticker.info.get('trailingPE', 'N/A')
+        ttm_pe = round(ticker.info.get('trailingPE', 'N/A'),2)
 
         # Debug
         if ttm_pe == 'N/A':
@@ -471,7 +471,7 @@ def stock_data(jsonified_cleaned_data, ticker_value):
         else:
             ttm_pe = ttm_pe
 
-        fwd_pe = ticker.info.get('forwardPE', 'N/A')
+        fwd_pe = round(ticker.info.get('forwardPE', 'N/A'),2)
 
         # Debug
         if fwd_pe == 'N/A':
