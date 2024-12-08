@@ -39,5 +39,6 @@ tenacity==8.0.1
 ua-parser==0.15.0
 urllib3==1.26.11
 Werkzeug==2.2.1
+yfinance==0.2.50
 zipp==3.8.1
 zope.interface==5.4.0
