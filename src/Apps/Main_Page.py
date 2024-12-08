@@ -15,6 +15,7 @@ import pandas as pd
 
 from bs4 import BeautifulSoup
 import requests
+import yfinance as yf
 
 
 ######################################################################################################################
@@ -46,7 +47,7 @@ layout = html.Div([
         
         # Live market price to earnings of company stock
         html.H6(
-            'Price To Earnings:',
+            'TTM Price To Earnings:',
             style = {
                 'display':'inline-block',
                 'padding-left':40,
@@ -55,7 +56,7 @@ layout = html.Div([
         ),
         
         html.H6(
-            id = 'pe',
+            id = 'ttm_pe',
             style = {
                 'display':'inline-block',
                 'padding-left':10
@@ -64,7 +65,7 @@ layout = html.Div([
         
         # Current earnings per share of company stock in $
         html.H6(
-            'TTM Earnings Per Share:',
+            'FWD Price to Earnings:',
             style = {
                 'display':'inline-block',
                 'padding-left':40,
@@ -73,7 +74,7 @@ layout = html.Div([
         ),
         
         html.H6(
-            id = 'eps',
+            id = 'fwd_pe',
             style = {
                 'display':'inline-block',
                 'padding-left':10
@@ -82,7 +83,7 @@ layout = html.Div([
         
         # Current earnings per share of company stock %
         html.H6(
-            'TTM Earnings Per Share:',
+            'Dividend Yield:',
             style = {
                 'display':'inline-block',
                 'padding-left':40,
@@ -91,7 +92,7 @@ layout = html.Div([
         ),
         
         html.H6(
-            id = 'eps%',
+            id = 'div',
             style = {
                 'display':'inline-block',
                 'padding-left':10
@@ -418,9 +419,9 @@ def compute(n_clicks, input1, input2, input3):
 #####################################################
 @app.callback(
     Output('price','children'),
-    Output('pe','children'),
-    Output('eps','children'),
-    Output('eps%','children'),
+    Output('ttm_pe','children'),
+    Output('fwd_pe','children'),
+    Output('div','children'),
     Output('company_summary','children'),
     Input('filtered_data', 'data'),
     Input('ticker_value', 'data')
@@ -431,19 +432,24 @@ def stock_data(jsonified_cleaned_data, ticker_value):
     filtered_data = pd.read_json(jsonified_cleaned_data, orient = 'split')
     ticker = ticker_value
 
+    ticker = yf.Ticker(ticker)
+    info = ticker.info
+
     # Establish web-scraper
-    url = f'https://ca.finance.yahoo.com/quote/{ticker}'
-    response = requests.get(url)
-    soup = BeautifulSoup(response.text, 'html.parser')
+    # url = f'https://ca.finance.yahoo.com/quote/{ticker}'
+    # response = requests.get(url)
+    # soup = BeautifulSoup(response.text, 'html.parser')
 
     try:
         # Scrape live stock prices
         ###########################################################################
-        price = soup.find('div', class_='container yf-1tejb6')
-        price = [x.get_text().strip() for x in price]
-        price = price[0]
-        price = re.sub('[^a-zA-Z0-9.-]+', ' ', price)
-        price = price.replace(" ", "")
+        # price = soup.find('div', class_='container yf-1tejb6')
+        # price = [x.get_text().strip() for x in price]
+        # price = price[0]
+        # price = re.sub('[^a-zA-Z0-9.-]+', ' ', price)
+        # price = price.replace(" ", "")
+
+        price = ticker.info['currentPrice']
 
         # Debug
         if price == 'N/A':
@@ -453,39 +459,54 @@ def stock_data(jsonified_cleaned_data, ticker_value):
 
         # Scarpe live pe stock data
         ###########################################################################
-        pe = soup.select('fin-streamer')
-        pe = [x.get_text().strip() for x in pe]
-        pe = pe[12]
+        # pe = soup.select('fin-streamer')
+        # pe = [x.get_text().strip() for x in pe]
+        # pe = pe[12]
+
+        ttm_pe = ticker.info.get('trailingPE', 'N/A')
 
         # Debug
-        if pe == 'N/A':
-            pe = '-'
+        if ttm_pe == 'N/A':
+            ttm_pe = '-'
         else:
-            pe = pe
+            ttm_pe = ttm_pe
+
+        fwd_pe = ticker.info.get('forwardPE', 'N/A')
 
         # Debug
-        try:
-            eps = round(float(price) / float(pe), 2)
-        except (ZeroDivisionError, ValueError):
-            eps = '-'
+        if fwd_pe == 'N/A':
+            fwd_pe = '-'
+        else:
+            fwd_pe = fwd_pe
+
+        # # Debug
+        # try:
+        #     eps = round(float(price) / float(pe), 2)
+        # except (ZeroDivisionError, ValueError):
+        #     eps = '-'
+
+
+        # # Debug
+        # try:
+        #     eps_percent = round((float(eps) / float(price)) * 100, 2)
+        # except (ZeroDivisionError, ValueError):
+        #     eps_percent = '-'
+
+        div = round(ticker.info.get('dividendYield', 'N/A')*100,2)
 
         # Debug
-        try:
-            eps_percent = round((float(eps) / float(price)) * 100, 2)
-        except (ZeroDivisionError, ValueError):
-            eps_percent = '-'
+        if div == 'N/A':
+            div = '-'
+        else:
+            div = div
 
         # Scrape company summary
         ###########################################################################
-        summary = soup.find('p', class_='yf-1q2tqwv')
-        summary = [x.get_text().strip() for x in summary]
-        summary = summary[0]
+        # summary = soup.find('p', class_='yf-1q2tqwv')
+        # summary = [x.get_text().strip() for x in summary]
+        # summary = summary[0]
 
-        # Debug
-        if summary == '':
-            summary = '-'
-        else:
-            summary = summary
+        summary = info['longBusinessSummary']
 
         # Debug
         if summary == '':
@@ -495,11 +516,11 @@ def stock_data(jsonified_cleaned_data, ticker_value):
             
     except:
         price = '-'
-        pe = '-'
-        eps = '-'
-        eps_percent = '-'
+        ttm_pe = '-'
+        fwd_pe = '-'
+        div = '-'
         summary = '-'
 
-    return f'${price}', pe, f'${eps}', f'{eps_percent}%', summary
+    return f'${price}', ttm_pe, fwd_pe, f'{div}%', summary
 
     
