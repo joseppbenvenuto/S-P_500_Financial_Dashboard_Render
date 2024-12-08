@@ -432,14 +432,14 @@ def stock_data(jsonified_cleaned_data, ticker_value):
     ticker = ticker_value
 
     # Establish web-scraper
-    url = f'https://www.marketwatch.com/investing/stock/{ticker}/profile'
+    url = f'https://ca.finance.yahoo.com/quote/{ticker}'
     response = requests.get(url)
     soup = BeautifulSoup(response.text, 'html.parser')
-    
+
     try:
         # Scrape live stock prices
         ###########################################################################
-        price = soup.select('.intraday__data > h2')
+        price = soup.find('div', class_='container yf-1tejb6')
         price = [x.get_text().strip() for x in price]
         price = price[0]
         price = re.sub('[^a-zA-Z0-9.-]+', ' ', price)
@@ -453,9 +453,9 @@ def stock_data(jsonified_cleaned_data, ticker_value):
 
         # Scarpe live pe stock data
         ###########################################################################
-        pe = soup.select('.group > .element > table > tbody > tr > td')
+        pe = soup.select('fin-streamer')
         pe = [x.get_text().strip() for x in pe]
-        pe = pe[1]
+        pe = pe[12]
 
         # Debug
         if pe == 'N/A':
@@ -477,9 +477,15 @@ def stock_data(jsonified_cleaned_data, ticker_value):
 
         # Scrape company summary
         ###########################################################################
-        summary = soup.select('.column > div > p')
+        summary = soup.find('p', class_='yf-1q2tqwv')
         summary = [x.get_text().strip() for x in summary]
         summary = summary[0]
+
+        # Debug
+        if summary == '':
+            summary = '-'
+        else:
+            summary = summary
 
         # Debug
         if summary == '':
